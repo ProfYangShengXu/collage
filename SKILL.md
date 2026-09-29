@@ -6,18 +6,18 @@ description: Use when 要把文字排进形状/剪影/轮廓做海报或艺术�
 # collage — 形状内拼贴排版
 
 把文字排进任意形状（人物剪影、物件轮廓）的排版引擎。
-仓库：`github.com/ProfYangShengXu/collage`　本机：`C:\Users\45140\Desktop\code\collage`
+仓库：`github.com/ProfYangShengXu/collage`
 
 ## 何时用
 
 - 「这几个字排进这个剪影」「做张文字海报」「文字组成形状」
-- AIE3905《倒影》模块 A（AI 眼中的人）：把描述词排进人物剪影
+- 交互装置里把「AI 对画面的描述词」排进人物剪影
 - 任何要「远看是轮廓、近看是内容」的视觉效果
 
 ## 快速开始
 
 ```bash
-cd C:/Users/45140/Desktop/code/collage
+cd <你的 collage 仓库>
 python -m collage 图.png \
   --title "主标题" --title-sub "主标题下的小字" \
   --sub "副标题" --sub-en "LABEL" \
@@ -112,7 +112,7 @@ spec.offx_title / offx_sub / offx_body  # 错位幅度（不居中才有张力�
 ## 验收方式
 
 ```bash
-cd C:/Users/45140/Desktop/code/collage
+cd <你的 collage 仓库>
 python -m pytest tests/ -q          # 22 tests
 python -m collage examples/tiger-shikigami.jpg --title "TIGER SHIKIGAMI" --out /tmp/chk
 ```
