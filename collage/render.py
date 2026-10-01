@@ -16,7 +16,7 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 from .layout import (FONTS, LayoutSpec, build_edge_layout, build_layout,
-                     text_size)
+                     draw_micro_info, draw_title_block, text_size)
 from .shape import ShapeInfo
 from .theme import Theme
 
@@ -29,17 +29,24 @@ LABELS = {
 }
 
 
-def _add_info(img: Image.Image, spec: LayoutSpec, theme: Theme) -> Image.Image:
-    """画布四角的信息层（标题 / 副标题 / 元信息）。"""
+def _add_info(img: Image.Image, spec: LayoutSpec, theme: Theme,
+              show_title: bool = True) -> Image.Image:
+    """画布四角的信息层（标题 / 副标题 / 元信息）。
+
+    ★ show_title：photo / negative 范式由 `draw_title_block` 在底部画主标题，左上再画一套
+    就是两个「第一级」（同一句话出现两次、字号差 3 倍），违反层级原则 —— 用户给的标准是
+    「第一级 = 画面中最大的字，且唯一」。所以这两个范式传 show_title=False。
+    """
     d = ImageDraw.Draw(img)
     W, H = img.size
     M = int(W * 0.055)
 
-    d.rectangle([M - 6, M - 6, M + int(W * 0.42), M + 108], fill=theme.paper)
-    h1 = 40 if W > 800 else 26
-    d.text((M, M), spec.title, font=FONTS.get(spec.font_bold, h1), fill=theme.ink)
-    d.text((M, M + int(h1 * 1.25)), spec.title_sub,
-           font=FONTS.get(spec.font_mono, max(10, int(h1 * 0.4))), fill=theme.accent)
+    if show_title:
+        d.rectangle([M - 6, M - 6, M + int(W * 0.42), M + 108], fill=theme.paper)
+        h1 = 40 if W > 800 else 26
+        d.text((M, M), spec.title, font=FONTS.get(spec.font_bold, h1), fill=theme.ink)
+        d.text((M, M + int(h1 * 1.25)), spec.title_sub,
+               font=FONTS.get(spec.font_mono, max(10, int(h1 * 0.4))), fill=theme.accent)
 
     for k, ln in enumerate(spec.meta):
         f = FONTS.get(spec.font_mono, 13)
@@ -87,7 +94,17 @@ def render(shape: ShapeInfo, spec: LayoutSpec, theme: Theme,
     else:
         raise ValueError(f"未知范式: {paradigm}（可选 {PARADIGMS}）")
 
-    return _add_info(out, spec, theme) if add_info else out
+    # ★ 主标题在合成【之后】画 —— 压在最上层。photo/negative 用的是贴边版式，原先标题画在 base
+    # 上，而 `composite(subj, base, mask)` 会用原图覆盖剪影内部，标题一落进剪影就被整个吃掉
+    # （实测：主标题被左下角的道具遮掉下半截）。用户明确要求「主标题可以盖住一部分画没关系」。
+    if paradigm in ("photo", "negative"):
+        out = draw_title_block(out, spec, theme)
+        # ★ 极小信息层压在最上层。它必须在底纹【之上】——9px 的小字压在网点/细胞纹上
+        # 会直接糊掉，那层"纹理感"就变成了"脏"。内容由 micro_tokens() 从文案派生。
+        out = draw_micro_info(out, shape, spec, theme)
+
+    return _add_info(out, spec, theme,
+                     show_title=(paradigm == "silhouette")) if add_info else out
 
 
 def render_all(shape: ShapeInfo, spec: LayoutSpec, theme: Theme,
